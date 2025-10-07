@@ -16,8 +16,7 @@ export async function parseYarn(
   const lineReader = createLineReader(input);
   let currentPackage: ParsedDependency | null = null;
   let inDependencies: boolean = false;
-  let line: string | null;
-  while ((line = lineReader()) !== null) {
+  for (const line of lineReader) {
     const nameMatch = line.match(namePattern);
     if (nameMatch && nameMatch.groups) {
       // This is a package name
