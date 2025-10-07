@@ -1,8 +1,8 @@
-# lockparse
+# 🔒 lockparse
 
-> A tiny zero-dependency lockfile parser.
+> A tiny zero-dependency lockfile parser for npm, Yarn, pnpm, and Bun.
 
-**IMPORTANT**: This library is in early development and the API may change without warning.
+**⚠️ IMPORTANT**: This library is in early development and the API may change without warning.
 
 ## Installation
 
@@ -36,8 +36,7 @@ Parses a lockfile and returns a structured representation of the dependency tree
   - `'npm'` or `'package-lock.json'` - npm lockfile
   - `'yarn'` or `'yarn.lock'` - Yarn lockfile
   - `'pnpm'` or `'pnpm-lock.yaml'` - pnpm lockfile
-  - `'bun'` or `'bun.lockb'` - Bun lockfile
-  - `'bunb'` or `'bun.lock'` - Bun binary lockfile
+  - `'bun'` or `'bun.lock'` - Bun lockfile
 - **`packageJson`** (`PackageJsonLike`, optional): The package.json object (optional but recommended for better accuracy)
 
 #### Returns
