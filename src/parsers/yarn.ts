@@ -3,6 +3,7 @@ import type {
   ParsedDependency,
   PackageJsonLike
 } from '../types.js';
+import {createLineReader} from '../line-reader.js';
 
 const namePattern = /"(?<key>(?<name>@?[^@]+)@npm:[^"]+)":/;
 const dependencyPattern = / {4}"?(?<depName>[^:"]+)"?: "(?<semver>[^"]+)"/;
@@ -12,12 +13,11 @@ export async function parseYarn(
   packageJson?: PackageJsonLike
 ): Promise<ParsedLockFile> {
   const packageMap: Record<string, ParsedDependency> = {};
-  let newLineIndex = input.indexOf('\n');
-  let lastIndex = 0;
+  const lineReader = createLineReader(input);
   let currentPackage: ParsedDependency | null = null;
   let inDependencies: boolean = false;
-  while (newLineIndex !== -1) {
-    const line = input.slice(lastIndex, newLineIndex).trimEnd();
+  let line: string | null;
+  while ((line = lineReader()) !== null) {
     const nameMatch = line.match(namePattern);
     if (nameMatch && nameMatch.groups) {
       // This is a package name
@@ -67,8 +67,6 @@ export async function parseYarn(
         inDependencies = true;
       }
     }
-    lastIndex = newLineIndex + 1;
-    newLineIndex = input.indexOf('\n', lastIndex);
   }
 
   const root: ParsedDependency = {
