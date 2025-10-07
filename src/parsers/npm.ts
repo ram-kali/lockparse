@@ -1,4 +1,8 @@
-import type {ParsedLockFile, ParsedDependency} from '../types.js';
+import {
+  type ParsedLockFile,
+  type ParsedDependency,
+  dependencyTypes
+} from '../types.js';
 
 interface NpmLockFilePeerDependencyMeta {
   optional?: boolean;
@@ -73,68 +77,43 @@ function processPackages(input: Record<string, NpmLockFilePackage>): {
   for (const [pkgKey, pkg] of Object.entries(input)) {
     const parsedPkg = packageMap[pkgKey];
 
-    if (pkg.dependencies) {
-      processDependencyMap(
-        pkg.dependencies,
-        parsedPkg.dependencies,
-        packageMap,
-        pkgKey
-      );
-    }
-
-    if (pkg.devDependencies) {
-      processDependencyMap(
-        pkg.devDependencies,
-        parsedPkg.devDependencies,
-        packageMap,
-        pkgKey
-      );
-    }
-
-    if (pkg.peerDependencies) {
-      processDependencyMap(
-        pkg.peerDependencies,
-        parsedPkg.peerDependencies,
-        packageMap,
-        pkgKey
-      );
-    }
-
-    if (pkg.optionalDependencies) {
-      processDependencyMap(
-        pkg.optionalDependencies,
-        parsedPkg.optionalDependencies,
-        packageMap,
-        pkgKey
-      );
-    }
+    processDependencyMap(pkg, parsedPkg, packageMap, pkgKey);
   }
 
   return {packages: Object.values(packageMap), root};
 }
 
 function processDependencyMap(
-  deps: Record<string, string>,
-  destination: ParsedDependency[],
+  pkg: NpmLockFilePackage,
+  parsed: ParsedDependency,
   packageMap: Record<string, ParsedDependency>,
   parentKey: string
 ): void {
-  for (const depName of Object.keys(deps)) {
-    let currentPath = parentKey ? `${parentKey}/node_modules` : 'node_modules';
-    let possiblePackage = packageMap[`${currentPath}/${depName}`];
-    while (!possiblePackage) {
-      const modulesIndex = currentPath.lastIndexOf('node_modules/');
-      if (modulesIndex === -1) {
-        break;
-      }
-      currentPath = currentPath.slice(
-        0,
-        modulesIndex + 'node_modules/'.length - 1
-      );
-      possiblePackage = packageMap[`${currentPath}/${depName}`];
+  for (const depType of dependencyTypes) {
+    const collection = parsed[depType];
+    const deps = pkg[depType];
+    if (!deps) {
+      continue;
     }
-    if (possiblePackage) {
-      destination.push(possiblePackage);
+    for (const depName of Object.keys(deps)) {
+      let currentPath = parentKey
+        ? `${parentKey}/node_modules`
+        : 'node_modules';
+      let possiblePackage = packageMap[`${currentPath}/${depName}`];
+      while (!possiblePackage) {
+        const modulesIndex = currentPath.lastIndexOf('node_modules/');
+        if (modulesIndex === -1) {
+          break;
+        }
+        currentPath = currentPath.slice(
+          0,
+          modulesIndex + 'node_modules/'.length - 1
+        );
+        possiblePackage = packageMap[`${currentPath}/${depName}`];
+      }
+      if (possiblePackage) {
+        collection.push(possiblePackage);
+      }
     }
   }
 }

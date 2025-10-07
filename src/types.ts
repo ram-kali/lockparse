@@ -1,3 +1,16 @@
+export type DependencyType =
+  | 'dependencies'
+  | 'devDependencies'
+  | 'peerDependencies'
+  | 'optionalDependencies';
+
+export const dependencyTypes: ReadonlyArray<DependencyType> = [
+  'dependencies',
+  'devDependencies',
+  'peerDependencies',
+  'optionalDependencies'
+];
+
 export interface ParsedDependency {
   name: string;
   version: string;

@@ -1,7 +1,9 @@
-import type {
-  ParsedLockFile,
-  ParsedDependency,
-  PackageJsonLike
+import {
+  type ParsedLockFile,
+  type ParsedDependency,
+  type PackageJsonLike,
+  type DependencyType,
+  dependencyTypes
 } from '../types.js';
 import {createYamlPairReader} from '../line-reader.js';
 
@@ -49,10 +51,8 @@ export async function parseYarn(
     } else if (
       pair.path.length === 2 &&
       pair.value &&
-      (pair.path[1] === 'dependencies' ||
-        pair.path[1] === 'optionalDependencies' ||
-        pair.path[1] === 'devDependencies' ||
-        pair.path[1] === 'peerDependencies')
+      // oxlint-disable-next-line no-unsafe-type-assertion
+      dependencyTypes.includes(pair.path[1] as DependencyType)
     ) {
       const [pkgKey, depType] = pair.path;
       const depName = pair.key;
@@ -72,7 +72,8 @@ export async function parseYarn(
         packageMap[depPkgKey] = depPkg;
       }
       if (pkg) {
-        pkg[depType].push(depPkg);
+        // oxlint-disable-next-line no-unsafe-type-assertion
+        pkg[depType as DependencyType].push(depPkg);
       }
     }
   }
@@ -87,34 +88,7 @@ export async function parseYarn(
   };
 
   if (packageJson) {
-    if (packageJson.dependencies) {
-      processRootDependencies(
-        packageJson.dependencies,
-        root.dependencies,
-        packageMap
-      );
-    }
-    if (packageJson.devDependencies) {
-      processRootDependencies(
-        packageJson.devDependencies,
-        root.devDependencies,
-        packageMap
-      );
-    }
-    if (packageJson.optionalDependencies) {
-      processRootDependencies(
-        packageJson.optionalDependencies,
-        root.optionalDependencies,
-        packageMap
-      );
-    }
-    if (packageJson.peerDependencies) {
-      processRootDependencies(
-        packageJson.peerDependencies,
-        root.peerDependencies,
-        packageMap
-      );
-    }
+    processRootDependencies(packageJson, root, packageMap);
   }
 
   return {
@@ -125,15 +99,22 @@ export async function parseYarn(
 }
 
 function processRootDependencies(
-  deps: Record<string, string>,
-  destination: ParsedDependency[],
+  packageJson: PackageJsonLike,
+  root: ParsedDependency,
   packageMap: Record<string, ParsedDependency>
 ): void {
-  for (const [depName, semver] of Object.entries(deps)) {
-    const mapKey = `${depName}@npm:${semver}`;
-    const existing = packageMap[mapKey];
-    if (existing) {
-      destination.push(existing);
+  for (const depType of dependencyTypes) {
+    const deps = packageJson[depType];
+    if (!deps) {
+      continue;
+    }
+    const destination = root[depType];
+    for (const [depName, semver] of Object.entries(deps)) {
+      const mapKey = `${depName}@npm:${semver}`;
+      const existing = packageMap[mapKey];
+      if (existing) {
+        destination.push(existing);
+      }
     }
   }
 }

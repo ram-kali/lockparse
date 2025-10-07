@@ -1,4 +1,9 @@
-import type {ParsedLockFile, ParsedDependency} from '../types.js';
+import {
+  type ParsedLockFile,
+  type ParsedDependency,
+  dependencyTypes,
+  type DependencyType
+} from '../types.js';
 import {createYamlPairReader} from '../line-reader.js';
 
 export async function parsePnpm(input: string): Promise<ParsedLockFile> {
@@ -90,13 +95,10 @@ function tryAddDependency(
   dependencyType: string,
   depPackage: ParsedDependency
 ): void {
-  if (
-    dependencyType === 'dependencies' ||
-    dependencyType === 'devDependencies' ||
-    dependencyType === 'optionalDependencies' ||
-    dependencyType === 'peerDependencies'
-  ) {
-    pkg[dependencyType].push(depPackage);
+  // oxlint-disable-next-line no-unsafe-type-assertion
+  const key = dependencyType as DependencyType;
+  if (dependencyTypes.includes(key)) {
+    pkg[key].push(depPackage);
   }
 }
 

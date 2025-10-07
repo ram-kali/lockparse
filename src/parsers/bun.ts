@@ -1,4 +1,8 @@
-import type {ParsedLockFile, ParsedDependency} from '../types.js';
+import {
+  type ParsedLockFile,
+  type ParsedDependency,
+  dependencyTypes
+} from '../types.js';
 
 interface BunDependencyInfo {
   dependencies?: Record<string, string>;
@@ -89,34 +93,10 @@ function processPackages(
   for (const [pkgKey, pkgInfo] of Object.entries(input)) {
     const [, , packageInfo] = pkgInfo;
     const pkg = packageMap[pkgKey];
-    processDependencies(packageInfo, pkg, packageMap, 'dependencies', pkgKey);
-    processDependencies(
-      packageInfo,
-      pkg,
-      packageMap,
-      'devDependencies',
-      pkgKey
-    );
-    processDependencies(
-      packageInfo,
-      pkg,
-      packageMap,
-      'peerDependencies',
-      pkgKey
-    );
-    processDependencies(
-      packageInfo,
-      pkg,
-      packageMap,
-      'optionalDependencies',
-      pkgKey
-    );
+    processDependencies(packageInfo, pkg, packageMap, pkgKey);
   }
 
-  processDependencies(rootPackage, root, packageMap, 'dependencies');
-  processDependencies(rootPackage, root, packageMap, 'devDependencies');
-  processDependencies(rootPackage, root, packageMap, 'peerDependencies');
-  processDependencies(rootPackage, root, packageMap, 'optionalDependencies');
+  processDependencies(rootPackage, root, packageMap);
 
   return {packages: Object.values(packageMap), root};
 }
@@ -125,23 +105,24 @@ function processDependencies(
   rootInfo: BunDependencyInfo,
   root: ParsedDependency,
   packageMap: Record<string, ParsedDependency>,
-  depType: keyof BunDependencyInfo,
   prefix?: string
 ): void {
-  const collection = rootInfo[depType];
-  if (!collection) {
-    return;
-  }
-  for (const name of Object.keys(collection)) {
-    let pkg: ParsedDependency | undefined;
-    if (prefix) {
-      pkg = packageMap[`${prefix}/${name}`];
+  for (const depType of dependencyTypes) {
+    const collection = rootInfo[depType];
+    if (!collection) {
+      return;
     }
-    if (!pkg) {
-      pkg = packageMap[name];
-    }
-    if (pkg) {
-      root[depType].push(pkg);
+    for (const name of Object.keys(collection)) {
+      let pkg: ParsedDependency | undefined;
+      if (prefix) {
+        pkg = packageMap[`${prefix}/${name}`];
+      }
+      if (!pkg) {
+        pkg = packageMap[name];
+      }
+      if (pkg) {
+        root[depType].push(pkg);
+      }
     }
   }
 }
