@@ -1,5 +1,147 @@
-import type {ParsedLockFile} from '../types.js';
+import type {ParsedLockFile, ParsedDependency} from '../types.js';
 
-export async function parseBun(_input: string): Promise<ParsedLockFile> {
-  throw new Error('Bun parser not implemented yet');
+interface BunDependencyInfo {
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+  peerDependencies?: Record<string, string>;
+  optionalDependencies?: Record<string, string>;
+}
+
+interface BunLockFileWorkspace extends BunDependencyInfo {
+  name: string;
+}
+
+type BunLockFilePackage = [
+  versionKey: string,
+  _unknown: string,
+  packageInfo: BunDependencyInfo,
+  hash: string
+];
+
+interface BunLockFileLike {
+  workspaces?: Record<string, BunLockFileWorkspace>;
+  packages: Record<string, BunLockFilePackage>;
+}
+
+const trailingCommaRegex = /,(?=\s+[}\]])/g;
+
+export async function parseBun(input: string): Promise<ParsedLockFile> {
+  let lockFile: BunLockFileLike;
+
+  try {
+    // Bun lock files are JavaScript because the Bun devs like trailing commas
+    const withoutTrailing = input.replaceAll(trailingCommaRegex, '');
+    lockFile = JSON.parse(withoutTrailing);
+  } catch {
+    return Promise.reject(new Error('Invalid JSON format'));
+  }
+
+  const rootPackage = lockFile.workspaces?.[''];
+
+  if (!rootPackage) {
+    throw new Error('Invalid npm lock file: missing root package');
+  }
+
+  const {packages, root} = processPackages(rootPackage, lockFile.packages);
+
+  const parsed: ParsedLockFile = {
+    type: 'bun',
+    packages,
+    root
+  };
+
+  return parsed;
+}
+
+function processPackages(
+  rootPackage: BunLockFileWorkspace,
+  input: Record<string, BunLockFilePackage>
+): {
+  root: ParsedDependency;
+  packages: ParsedDependency[];
+} {
+  const packageMap: Record<string, ParsedDependency> = {};
+  const root: ParsedDependency = {
+    name: 'root',
+    version: '',
+    dependencies: [],
+    devDependencies: [],
+    optionalDependencies: [],
+    peerDependencies: []
+  };
+
+  for (const [pkgKey, pkgInfo] of Object.entries(input)) {
+    const [versionKey] = pkgInfo;
+    const versionIndex = versionKey.indexOf('@', 1);
+    const version = versionKey.slice(versionIndex + 1);
+    const name = versionKey.slice(0, versionIndex);
+    const pkg: ParsedDependency = {
+      name,
+      version,
+      dependencies: [],
+      devDependencies: [],
+      peerDependencies: [],
+      optionalDependencies: []
+    };
+    packageMap[pkgKey] = pkg;
+  }
+
+  for (const [pkgKey, pkgInfo] of Object.entries(input)) {
+    const [, , packageInfo] = pkgInfo;
+    const pkg = packageMap[pkgKey];
+    processDependencies(packageInfo, pkg, packageMap, 'dependencies', pkgKey);
+    processDependencies(
+      packageInfo,
+      pkg,
+      packageMap,
+      'devDependencies',
+      pkgKey
+    );
+    processDependencies(
+      packageInfo,
+      pkg,
+      packageMap,
+      'peerDependencies',
+      pkgKey
+    );
+    processDependencies(
+      packageInfo,
+      pkg,
+      packageMap,
+      'optionalDependencies',
+      pkgKey
+    );
+  }
+
+  processDependencies(rootPackage, root, packageMap, 'dependencies');
+  processDependencies(rootPackage, root, packageMap, 'devDependencies');
+  processDependencies(rootPackage, root, packageMap, 'peerDependencies');
+  processDependencies(rootPackage, root, packageMap, 'optionalDependencies');
+
+  return {packages: Object.values(packageMap), root};
+}
+
+function processDependencies(
+  rootInfo: BunDependencyInfo,
+  root: ParsedDependency,
+  packageMap: Record<string, ParsedDependency>,
+  depType: keyof BunDependencyInfo,
+  prefix?: string
+): void {
+  const collection = rootInfo[depType];
+  if (!collection) {
+    return;
+  }
+  for (const name of Object.keys(collection)) {
+    let pkg: ParsedDependency | undefined;
+    if (prefix) {
+      pkg = packageMap[`${prefix}/${name}`];
+    }
+    if (!pkg) {
+      pkg = packageMap[name];
+    }
+    if (pkg) {
+      root[depType].push(pkg);
+    }
+  }
 }
