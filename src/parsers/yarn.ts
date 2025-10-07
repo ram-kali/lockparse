@@ -3,67 +3,76 @@ import type {
   ParsedDependency,
   PackageJsonLike
 } from '../types.js';
-import {createLineReader} from '../line-reader.js';
-
-const namePattern = /"(?<key>(?<name>@?[^@]+)@npm:[^"]+)":/;
-const dependencyPattern = / {4}"?(?<depName>[^:"]+)"?: "(?<semver>[^"]+)"/;
+import {createYamlPairReader} from '../line-reader.js';
 
 export async function parseYarn(
   input: string,
   packageJson?: PackageJsonLike
 ): Promise<ParsedLockFile> {
   const packageMap: Record<string, ParsedDependency> = {};
-  const lineReader = createLineReader(input);
-  let currentPackage: ParsedDependency | null = null;
-  let inDependencies: boolean = false;
-  for (const line of lineReader) {
-    const nameMatch = line.match(namePattern);
-    if (nameMatch && nameMatch.groups) {
-      // This is a package name
-      const {name, key} = nameMatch.groups;
-      inDependencies = false;
-      const existing = packageMap[key];
-      if (existing) {
-        currentPackage = existing;
-      } else {
-        currentPackage = {
-          name,
+  const pairReader = createYamlPairReader(input);
+  for (const pair of pairReader) {
+    if (pair.path.length == 0 && !pair.value && pair.key.includes('@npm:')) {
+      const pkgKeys = pair.key.split(', ');
+      let pkg: ParsedDependency | undefined;
+      for (const pkgKey of pkgKeys) {
+        if (packageMap[pkgKey]) {
+          pkg = packageMap[pkgKey];
+          break;
+        }
+      }
+      if (!pkg) {
+        pkg = {
+          name: '',
           version: '',
           dependencies: [],
           devDependencies: [],
           optionalDependencies: [],
           peerDependencies: []
         };
-        packageMap[key] = currentPackage;
       }
-    } else if (currentPackage) {
-      if (inDependencies) {
-        const depMatch = line.match(dependencyPattern);
-        if (depMatch && depMatch.groups) {
-          const {depName, semver} = depMatch.groups;
-          const mapKey = `${depName}@${semver}`;
-          const existing = packageMap[mapKey];
-          if (existing) {
-            currentPackage.dependencies.push(existing);
-          } else {
-            const newDep: ParsedDependency = {
-              name: depName,
-              version: '',
-              dependencies: [],
-              devDependencies: [],
-              optionalDependencies: [],
-              peerDependencies: []
-            };
-            packageMap[mapKey] = newDep;
-            currentPackage.dependencies.push(newDep);
-          }
-        } else {
-          inDependencies = false;
+      packageMap[pair.key] = pkg;
+      for (const pkgKey of pkgKeys) {
+        if (!pkg.name) {
+          const separatorIndex = pkgKey.indexOf('@', 1);
+          const name = pkgKey.slice(0, separatorIndex);
+          pkg.name = name;
         }
-      } else if (line.startsWith('  version: ')) {
-        currentPackage.version = line.slice('  version: '.length);
-      } else if (line.startsWith('  dependencies:')) {
-        inDependencies = true;
+        packageMap[pkgKey] = pkg;
+      }
+    } else if (pair.path.length === 1 && pair.key === 'version' && pair.value) {
+      const [pkgKey] = pair.path;
+      const pkg = packageMap[pkgKey];
+      if (pkg) {
+        pkg.version = pair.value;
+      }
+    } else if (
+      pair.path.length === 2 &&
+      pair.value &&
+      (pair.path[1] === 'dependencies' ||
+        pair.path[1] === 'optionalDependencies' ||
+        pair.path[1] === 'devDependencies' ||
+        pair.path[1] === 'peerDependencies')
+    ) {
+      const [pkgKey, depType] = pair.path;
+      const depName = pair.key;
+      const depSemver = pair.value;
+      const pkg = packageMap[pkgKey];
+      const depPkgKey = `${depName}@${depSemver}`;
+      let depPkg = packageMap[depPkgKey];
+      if (!depPkg) {
+        depPkg = {
+          name: depName,
+          version: '',
+          dependencies: [],
+          devDependencies: [],
+          optionalDependencies: [],
+          peerDependencies: []
+        };
+        packageMap[depPkgKey] = depPkg;
+      }
+      if (pkg) {
+        pkg[depType].push(depPkg);
       }
     }
   }

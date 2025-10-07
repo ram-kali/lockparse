@@ -7,7 +7,7 @@ export interface ParsedDependency {
   optionalDependencies: ParsedDependency[];
 }
 
-export type LockFileType = 'npm' | 'yarn' | 'pnpm' | 'bun' | 'bun-binary';
+export type LockFileType = 'npm' | 'yarn' | 'pnpm' | 'bun';
 
 export interface ParsedLockFile {
   type: LockFileType;

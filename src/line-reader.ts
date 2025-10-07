@@ -11,7 +11,7 @@ export function* createLineReader(input: string) {
 }
 
 const yamlPairPattern =
-  /^(?<indent> *)['"]?(?<key>[^:"']+)["']?:( ["']?(?<value>.+)["']?)?$/;
+  /^(?<indent> *)(['"](?<key>[^"']+)["']|(?<key>[^:]+)):( (["'](?<value>[^"']+)["']|(?<value>.+)))?$/;
 const spacePattern = /^(?<spaces> *)[^ ]/;
 
 export function* createYamlPairReader(input: string) {

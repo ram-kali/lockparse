@@ -3,19 +3,16 @@ import {parseNpm} from './parsers/npm.js';
 import {parseYarn} from './parsers/yarn.js';
 import {parsePnpm} from './parsers/pnpm.js';
 import {parseBun} from './parsers/bun.js';
-import {parseBunBinary} from './parsers/bunBinary.js';
 
 const typeMap: Record<string, LockFileType> = {
   'package-lock.json': 'npm',
   'yarn.lock': 'yarn',
   'pnpm-lock.yaml': 'pnpm',
-  'bun.lockb': 'bun',
-  'bun.lock': 'bun-binary',
+  'bun.lock': 'bun',
   npm: 'npm',
   yarn: 'yarn',
   pnpm: 'pnpm',
-  bun: 'bun',
-  bunb: 'bun-binary'
+  bun: 'bun'
 };
 
 export function parse(
@@ -34,8 +31,6 @@ export function parse(
       return parsePnpm(input);
     case 'bun':
       return parseBun(input);
-    case 'bun-binary':
-      return parseBunBinary(input);
     default:
       throw new Error(`Unsupported lock file type: ${typeOrFileName}`);
   }
